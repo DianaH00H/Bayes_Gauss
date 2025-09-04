@@ -9,23 +9,265 @@ format: html
 editor: visual
 ---
 
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+## Establecemos semilla y llamamos las librerias necesarias:
 
 ```{r}
-1 + 1
+library(dplyr)
+library(readr)
+library(stringr)
+library(stringi)
+library(bnlearn)
+
 ```
 
-You can add options to executable code like this
+
+## Elegimos las variables que vamos a usar:
+
+### calidad_aire
+SO2 -> SO_2
+CO -> CO
+NOX -> NOx
+COV -> COV
+PM010 -> PM_010
+PM2.5 -> PM_2_5
+NH3 -> NH_3
+Estado -> Entidad_federativa
+Municipio -> Municipio
+
+
+### ensanut2022_socdem
+Estado -> desc_ent1
+Municipio -> desc_mun1
+Meses -> meses     
+
+
+### ensanut2022_muestras
+Sex -> h0302
+Age -> h0303
+Hemoglobin -> hb02
+HDL -> valor_COL_HDL
+LDL -> valor_COL_LDL
+Colest tot -> valor_COLEST
+Creatinine -> valor_CREAT
+Glucose -> valor_EAG
+Insuline -> valor_INSULINA
+PCR -> valor_PCR
+Triglicerides -> valor_TRIG
+HbA1C -> valor_HB1AC
+Ferritine -> valor_FERRITINA
+Folate -> valor_ valor_FOL
+Transferrine -> valor_STFR_FEB23
+Vit B12 -> valor_VIT_B12
+Vit D -> valor_VIT_D
+
+## Creamos df de los csv unidos:
+```{r}
+# Función para limpiar nombres
+limpiar_nombre <- function(x) {
+  x %>%
+    str_remove("^[0-9]+\\s*") %>%  # eliminar códigos al inicio
+    str_squish() %>%                # eliminar espacios extra
+    str_to_lower() %>%              # todo en minúsculas
+    stri_trans_general("Latin-ASCII")  # quitar acentos
+}
+
+# Cargar las bases de datos
+aire <- read_csv("data/calidad_aire_2025.csv")
+socdem <- read_csv2("data/ensanut2022_socdem.csv")
+muestras  <- read_csv2("data/ensanut2022_muestras.csv")
+
+# Normalizar nombres de estados y municipios
+socdem <- socdem %>%
+  mutate(
+    Entidad_federativa = limpiar_nombre(desc_ent1),
+    Municipio = limpiar_nombre(desc_mun1)
+  )
+
+muestras <- muestras %>%
+  mutate(
+    Entidad_federativa = limpiar_nombre(desc_ent),
+    Municipio = limpiar_nombre(desc_mun)
+  )
+
+aire <- aire %>%
+  mutate(
+    Entidad_federativa = limpiar_nombre(Entidad_federativa),
+    Municipio = limpiar_nombre(Municipio)
+  )
+
+# Renombrar columnas de emisiones
+aire_rename <- c(
+  "SO2" = "SO_2",
+  "NOX" = "NOx",
+  "PM10" = "PM_010",
+  "PM25" = "PM_2_5",
+  "NH3" = "NH_3"
+)
+
+aire <- aire %>% rename(!!!aire_rename)
+
+aire_municipio <- aire %>%
+  group_by(Entidad_federativa, Municipio) %>%
+  summarise(
+    SO2 = sum(SO2, na.rm = TRUE),
+    CO = sum(CO, na.rm = TRUE),
+    NOX = sum(NOX, na.rm = TRUE),
+    COV = sum(COV, na.rm = TRUE),
+    PM10 = sum(PM10, na.rm = TRUE),
+    PM25 = sum(PM25, na.rm = TRUE),
+    NH3 = sum(NH3, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Seleccionar y renombrar columnas de socdem y muestras
+socdem <- socdem %>%
+  select(FOLIO_I, FOLIO_INT, Entidad_federativa, Municipio, meses) %>%
+  rename(Meses = meses)
+
+muestras <- muestras %>%
+  select(FOLIO_I, FOLIO_INT, Entidad_federativa, Municipio,
+         h0302, h0303, hb02, valor_COL_HDL, valor_COL_LDL, valor_COLEST,
+         valor_CREAT, valor_EAG, valor_INSULINA, valor_PCR, valor_TRIG,
+         valor_HB1AC, valor_FERRITINA, valor_FOL, valor_STFR_FEB23,
+         valor_VIT_B12, valor_VIT_D) %>%
+  rename(
+    Sex = h0302,
+    Age = h0303,
+    Hemoglobin = hb02,
+    HDL = valor_COL_HDL,
+    LDL = valor_COL_LDL,
+    Colest_tot = valor_COLEST,
+    Creatinine = valor_CREAT,
+    Glucose = valor_EAG,
+    Insuline = valor_INSULINA,
+    PCR = valor_PCR,
+    Triglicerides = valor_TRIG,
+    HbA1C = valor_HB1AC,
+    Ferritine = valor_FERRITINA,
+    Folate = valor_FOL,
+    Transferrine = valor_STFR_FEB23,
+    Vit_B12 = valor_VIT_B12,
+    Vit_D = valor_VIT_D
+  )
+
+
+# Unimos las bases
+merged_df <- socdem %>%
+  left_join(muestras, by = c("FOLIO_INT", "Entidad_federativa", "Municipio")) %>%
+  left_join(aire_municipio, by = c("Entidad_federativa", "Municipio"))
+
+# Quitamos columnas no importantes
+merged_df <- merged_df %>% select(-FOLIO_I.x, FOLIO_I.y)
+# Mostramos el primer df
+merged_df
+```
+
+
+## 3 DAG's propuestas:
+
+### Dag 1 [Nombre de persona entrevistada]
+Nombre de las variables a utilizar
+```{r}
+colnames(data) = c("", "", "", "", "", "", "", "")
+```
+
+Creamos la dag
+Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
+```{r}
+dag1 = model2network('')
+```
 
 ```{r}
-#| echo: false
-2 * 2
+graphviz.plot(dag, shape = "ellipse")
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+
+### Dag 2 [Nombre de persona entrevistada]
+Nombre de las variables a utilizar
+```{r}
+colnames(data) = c("", "", "", "", "", "", "", "")
+```
+
+Creamos la dag
+Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
+```{r}
+dag2 = model2network('')
+```
+
+```{r}
+graphviz.plot(dag, shape = "ellipse")
+```
+
+
+### Dag 3 [Nombre de persona entrevistada]
+Nombre de las variables a utilizar
+```{r}
+colnames(data) = c("", "", "", "", "", "", "", "")
+```
+
+Creamos la dag
+Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
+```{r}
+dag3 = model2network('')
+```
+
+```{r}
+graphviz.plot(dag, shape = "ellipse")
+```
+
+
+## Limpiamos nuevamente la base de datos
+Quitamos variables que no vamos a usar y valores nulos
+```{r}
+#df_limpio <- df_limpio %>% select(-)
+#df_limpio
+```
+
+## GBN para las DAG's:
+Dag 1
+```{r}
+gbn_1 = bn.fit(dag1, data = df_limpio)
+```
+
+Dag 2
+```{r}
+gbn_2 = bn.fit(dag2, data = df_limpio)
+```
+
+Dag 3
+```{r}
+gbn_3 = bn.fit(dag3, data = df_limpio)
+```
+
+## BIC y AIC de las GBN's:
+```{r}
+bic_scores <- c(
+  dag1 = score(dag1, data = df_limpio, type = "bic-g"),
+  dag2 = score(dag2, data = df_limpio, type = "bic-g"),
+  dag3 = score(dag3, data = df_limpio, type = "bic-g")
+)
+
+aic_scores <- c(
+  dag1 = score(dag1, data = df_limpio, type = "aic-g"),
+  dag2 = score(dag2, data = df_limpio, type = "aic-g"),
+  dag3 = score(dag3, data = df_limpio, type = "aic-g")
+)
+
+scores_df <- data.frame(
+  DAG = c("dag1", "dag2", "dag3"),
+  BIC = bic_scores,
+  AIC = aic_scores
+)
+
+print(scores_df)
+```
+
+## Inclusión de variables categoricas:
+
+## Mejor estructura:
+
+## 3 Queries a resolver:
+
+##✏️ Investiguen si incluir modelos no paramétricos les ayuda a mejorar el BIC y el AIC de su mejor modelo.:
+
+
