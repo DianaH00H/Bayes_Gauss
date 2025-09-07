@@ -248,16 +248,48 @@ graphviz.plot(dag2, shape = "ellipse")
 
 ```
 
-### Dag 3 \[Nombre de persona entrevistada\]
+### Dag 3. 
 
-Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
+#### (Nombre de persona entrevistada: Estefanía Parra Esparza, estudiante de medicina. U de G)
 
-```{r}
-dag3 = model2network('')
-```
+**La edad y la exposición a contaminantes del aire influyen en biomarcadores clave como glucosa, lípidos, inflamación, vitaminas y hemoglobina, los cuales interactúan entre sí para reflejar el estado metabólico y de salud de la persona.**
 
 ```{r}
-graphviz.plot(dag, shape = "ellipse")
+# === DAG sin T2D (continua / GBN amigable) ===
+dag3b_string <- paste0(
+  # Raíces de exposición
+  "[PM25][PM10][NOX][SO2][CO][COV][NH3][Age]",
+
+  # Metabolismo / inflamación afectados por aire y edad
+  "[Glucose|PM25:PM10:NOX:CO:Age]",
+  "[Insuline|PM25:PM10:NOX:CO:Age]",
+  "[PCR|PM25:PM10:NOX:SO2:NH3:Age]",
+
+  # Relación fisiológica: glucosa e inflamación -> HbA1C
+  "[HbA1C|Glucose:PCR:Age]",
+
+  # Perfil lipídico (aire y edad influyen; total depende de subfracciones)
+  "[HDL|PM25:Age]",
+  "[LDL|PM25:NOX:Age]",
+  "[Triglicerides|PM25:NOX:Age]",
+  "[Colest_tot|LDL:HDL:Triglicerides:Age]",
+
+  # Hierro y hemoglobina
+  "[Ferritine|Age]",
+  "[Transferrine|Age:Ferritine]",
+  "[Hemoglobin|Ferritine:Transferrine:Age]",
+
+  # Función renal
+  "[Creatinine|Age]",
+
+  # Vitaminas (ejemplo: VIt D ↓ con PM2.5 y cambia con edad)
+  "[Vit_D|PM25:Age]",
+  "[Vit_B12|Age]",
+  "[Folate|Age]"
+)
+
+dag3b <- bnlearn::model2network(dag3b_string)
+graphviz.plot(dag3b, shape = "ellipse")
 ```
 
 ## Limpiamos nuevamente la base de datos
