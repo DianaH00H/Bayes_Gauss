@@ -63,20 +63,25 @@ Vit D -> valor_VIT_D
 ## Creamos df de los csv unidos:
 ```{r}
 # Función para limpiar nombres
+
 limpiar_nombre <- function(x) {
   x %>%
-    str_remove("^[0-9]+\\s*") %>%  # eliminar códigos al inicio
-    str_squish() %>%                # eliminar espacios extra
-    str_to_lower() %>%              # todo en minúsculas
-    stri_trans_general("Latin-ASCII")  # quitar acentos
+    str_remove("^[0-9]+\\s*") %>%  
+    str_squish() %>%               
+    str_to_lower() %>%             
+    stri_trans_general("Latin-ASCII")  
 }
 
-# Cargar las bases de datos
-aire <- read_csv("data/calidad_aire_2025.csv")
-socdem <- read_csv2("data/ensanut2022_socdem.csv")
-muestras  <- read_csv2("data/ensanut2022_muestras.csv")
 
-# Normalizar nombres de estados y municipios
+# Cargar bases de datos
+
+aire <- read_delim("data/calidad_aire_2025.csv")
+socdem <- read_delim("data/ensanut2022_socdem.csv")
+muestras  <- read_delim("data/ensanut2022_muestras.csv")
+
+
+# Normalizar nombres
+
 socdem <- socdem %>%
   mutate(
     Entidad_federativa = limpiar_nombre(desc_ent1),
@@ -95,7 +100,9 @@ aire <- aire %>%
     Municipio = limpiar_nombre(Municipio)
   )
 
+
 # Renombrar columnas de emisiones
+
 aire_rename <- c(
   "SO2" = "SO_2",
   "NOX" = "NOx",
@@ -106,20 +113,26 @@ aire_rename <- c(
 
 aire <- aire %>% rename(!!!aire_rename)
 
+
+# Resumir aire por municipio y fuente fija
+
 aire_municipio <- aire %>%
+  filter(Tipo_de_Fuente == "Fuentes fijas") %>%
   group_by(Entidad_federativa, Municipio) %>%
   summarise(
-    SO2 = sum(SO2, na.rm = TRUE),
-    CO = sum(CO, na.rm = TRUE),
-    NOX = sum(NOX, na.rm = TRUE),
-    COV = sum(COV, na.rm = TRUE),
-    PM10 = sum(PM10, na.rm = TRUE),
-    PM25 = sum(PM25, na.rm = TRUE),
-    NH3 = sum(NH3, na.rm = TRUE),
+    SO2   = sum(SO2, na.rm = TRUE),
+    CO    = sum(CO, na.rm = TRUE),
+    NOX   = sum(NOX, na.rm = TRUE),
+    COV   = sum(COV, na.rm = TRUE),
+    PM10  = sum(PM10, na.rm = TRUE),
+    PM25  = sum(PM25, na.rm = TRUE),
+    NH3   = sum(NH3, na.rm = TRUE),
     .groups = "drop"
   )
 
-# Seleccionar y renombrar columnas de socdem y muestras
+
+# Selección y renombrado de columnas
+
 socdem <- socdem %>%
   select(FOLIO_I, FOLIO_INT, Entidad_federativa, Municipio, meses) %>%
   rename(Meses = meses)
@@ -151,26 +164,60 @@ muestras <- muestras %>%
   )
 
 
-# Unimos las bases
-merged_df <- socdem %>%
-  left_join(muestras, by = c("FOLIO_INT", "Entidad_federativa", "Municipio")) %>%
-  left_join(aire_municipio, by = c("Entidad_federativa", "Municipio"))
+# Variables 
 
-# Quitamos columnas no importantes
-merged_df <- merged_df %>% select(-FOLIO_I.x, FOLIO_I.y)
-# Mostramos el primer df
+
+vars <- c(
+    "FOLIO_INT", "Entidad_federativa", "Municipio", 
+  "Sex", "Age", "Hemoglobin", "HDL", "LDL", "Colest_tot", 
+  "Creatinine", "Glucose", "Insuline", "PCR", "Triglicerides", 
+  "HbA1C", "Ferritine", "Folate", "Transferrine", "Vit_B12", "Vit_D",
+  "Meses"
+)
+
+vars_muestra <- c("Hemoglobin", "HDL", "LDL", "Colest_tot", 
+  "Creatinine", "Glucose", "Insuline", "PCR", "Triglicerides", 
+  "HbA1C", "Ferritine", "Folate", "Transferrine", "Vit_B12", "Vit_D"
+)
+
+  
+
+# Limpiar valores faltantes
+
+muestras  <- muestras |> filter(if_all(all_of(vars_muestra), ~ !is.na(.x)))
+
+# Unir bases
+
+merged_df <- socdem %>%
+  left_join(muestras, by = c("FOLIO_INT", "Municipio")) %>%
+  left_join(aire_municipio, by = ("Municipio"))
+
+# Eliminamos valores vacios de merged_df (Al juntarlos se generan nuevos valores vacios) 
+#y luego convertimos a numericos los valores de muestras
+
+merged_df  <- merged_df |> filter(if_all(all_of(vars), ~ !is.na(.x)))
+
+merged_df <- merged_df %>%
+  mutate(across(
+    c(vars_muestra),
+    as.numeric
+  ))
+
+# Eliminar cols duplicados
+
+merged_df <- merged_df %>% select(-FOLIO_I.x, -FOLIO_I.y, -Entidad_federativa, -Entidad_federativa.y)
+
+# Resultado
+muestras
 merged_df
 ```
+
+
 
 
 ## 3 DAG's propuestas:
 
 ### Dag 1 [Nombre de persona entrevistada]
-Nombre de las variables a utilizar
-```{r}
-colnames(data) = c("", "", "", "", "", "", "", "")
-```
-
 Creamos la dag
 Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
 ```{r}
@@ -183,11 +230,6 @@ graphviz.plot(dag, shape = "ellipse")
 
 
 ### Dag 2 [Nombre de persona entrevistada]
-Nombre de las variables a utilizar
-```{r}
-colnames(data) = c("", "", "", "", "", "", "", "")
-```
-
 Creamos la dag
 Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
 ```{r}
@@ -200,11 +242,6 @@ graphviz.plot(dag, shape = "ellipse")
 
 
 ### Dag 3 [Nombre de persona entrevistada]
-Nombre de las variables a utilizar
-```{r}
-colnames(data) = c("", "", "", "", "", "", "", "")
-```
-
 Creamos la dag
 Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
 ```{r}
