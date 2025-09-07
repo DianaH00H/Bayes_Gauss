@@ -190,16 +190,24 @@ merged_df
 
 ## 3 DAG's propuestas:
 
-### Dag 1 \[Nombre de persona entrevistada\]
+### Dag 1 \[Persona entrevistada: Samantha Nevarez Soto estudiante de medicina\]
 
 Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
 
 ```{r}
-dag1 = model2network('')
+
+#creacion de la primera DAG sin variables cualitativas
+
+colnames(merged_df) = c("Age", "Hemoglobin", "HDL", "LDL", "Colest_tot", "Glucose",
+                   "Insuline", "PCR", "Triglicerides", "HbA1C", "Ferritine",
+                   "Transferrine","Vit_D", "SO2", "CO", "NOX", "COV", "PM10",
+                   "PM25", "NH3")
+# Definir el DAG
+dag1 = model2network("[Age][SO2][CO][NOX][COV][PM10][PM25][NH3][Hemoglobin|SO2:CO:NOX:COV:PM10:PM25:NH3][HDL|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][LDL|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Colest_tot|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Glucose|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Insuline|SO2:CO:NOX:COV:PM10:PM25:NH3][PCR|SO2:CO:NOX:COV:PM10:PM25:NH3][Triglicerides|SO2:CO:NOX:COV:PM10:PM25:NH3][HbA1C|SO2:CO:NOX:COV:PM10:PM25:NH3][Ferritine|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Transferrine|SO2:CO:NOX:COV:PM10:PM25:NH3][Vit_D|SO2:CO:NOX:COV:PM10:PM25:NH3]")
 ```
 
 ```{r}
-graphviz.plot(dag, shape = "ellipse")
+graphviz.plot(dag1, shape = "ellipse")
 ```
 
 ### Dag 2 \[Nombre de persona entrevistada\]
