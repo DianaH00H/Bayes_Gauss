@@ -210,16 +210,42 @@ dag1 = model2network("[Age][SO2][CO][NOX][COV][PM10][PM25][NH3][Hemoglobin|SO2:C
 graphviz.plot(dag1, shape = "ellipse")
 ```
 
-### Dag 2 \[Nombre de persona entrevistada\]
+### Dag 2 \[Persona entrevistada: Angel David Hernández Almeida Ingeniero Biomédico del Real San José\]
 
 Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
 
 ```{r}
-dag2 = model2network('')
+# DAG 2 (Ángel)
+dag2_string <- paste0(
+  "[Sex][Age][Meses][PM_2_5][PM_010][NOx][CO][SO_2][COV][NH_3]",
+  "[PCR|PM_2_5:NOx:NH_3:Meses:Age]",
+  "[Hemoglobin|Sex:Age:NOx]",
+  "[Ferritine|Sex:Age:PCR]",
+  "[Transferrine|Age:Ferritine]",
+  "[Glucose|Age:PM_2_5:NOx:CO:Meses]",
+  "[Insuline|Age:PM_2_5:NOx:CO:Glucose]",
+  "[HbA1C|Age:Glucose]",
+  "[HDL|Sex:Age:PM_2_5:Meses]",
+  "[LDL|Age:PM_2_5:NOx:Meses]",
+  "[Triglicerides|Age:PM_2_5:NOx:Meses]",
+  "[Colest_tot|LDL:HDL:Triglicerides:Age]",
+  "[Creatinine|Age:Sex:Meses]",
+  "[Vit_D|Meses:Age:Sex:PM_2_5]",
+  "[Vit_B12|Age:Meses]",
+  "[Folate|Age:Meses]"
+)
+
+
 ```
 
 ```{r}
-graphviz.plot(dag, shape = "ellipse")
+dag2 <- model2network(dag2_string)
+
+```
+
+```{r}
+graphviz.plot(dag2, shape = "ellipse")
+
 ```
 
 ### Dag 3 \[Nombre de persona entrevistada\]
