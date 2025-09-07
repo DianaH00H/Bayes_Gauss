@@ -2,4 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-LICENSE
+LICENSE.DS_Store
+.Rhistory
+.Rproj.user/
+*.Rproj
+notebooks/exploracion_inicial.qmd
