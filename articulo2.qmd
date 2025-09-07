@@ -18,49 +18,25 @@ library(stringr)
 library(stringi)
 library(bnlearn)
 
+set.seed(1234)
 ```
-
 
 ## Elegimos las variables que vamos a usar:
 
 ### calidad_aire
-SO2 -> SO_2
-CO -> CO
-NOX -> NOx
-COV -> COV
-PM010 -> PM_010
-PM2.5 -> PM_2_5
-NH3 -> NH_3
-Estado -> Entidad_federativa
-Municipio -> Municipio
 
+SO2 -\> SO_2 CO -\> CO NOX -\> NOx COV -\> COV PM010 -\> PM_010 PM2.5 -\> PM_2_5 NH3 -\> NH_3 Estado -\> Entidad_federativa Municipio -\> Municipio
 
 ### ensanut2022_socdem
-Estado -> desc_ent1
-Municipio -> desc_mun1
-Meses -> meses     
 
+Estado -\> desc_ent1 Municipio -\> desc_mun1 Meses -\> meses     
 
 ### ensanut2022_muestras
-Sex -> h0302
-Age -> h0303
-Hemoglobin -> hb02
-HDL -> valor_COL_HDL
-LDL -> valor_COL_LDL
-Colest tot -> valor_COLEST
-Creatinine -> valor_CREAT
-Glucose -> valor_EAG
-Insuline -> valor_INSULINA
-PCR -> valor_PCR
-Triglicerides -> valor_TRIG
-HbA1C -> valor_HB1AC
-Ferritine -> valor_FERRITINA
-Folate -> valor_ valor_FOL
-Transferrine -> valor_STFR_FEB23
-Vit B12 -> valor_VIT_B12
-Vit D -> valor_VIT_D
+
+Sex -\> h0302 Age -\> h0303 Hemoglobin -\> hb02 HDL -\> valor_COL_HDL LDL -\> valor_COL_LDL Colest tot -\> valor_COLEST Creatinine -\> valor_CREAT Glucose -\> valor_EAG Insuline -\> valor_INSULINA PCR -\> valor_PCR Triglicerides -\> valor_TRIG HbA1C -\> valor_HB1AC Ferritine -\> valor_FERRITINA Folate -\> valor\_ valor_FOL Transferrine -\> valor_STFR_FEB23 Vit B12 -\> valor_VIT_B12 Vit D -\> valor_VIT_D
 
 ## Creamos df de los csv unidos:
+
 ```{r}
 # Función para limpiar nombres
 
@@ -212,14 +188,12 @@ muestras
 merged_df
 ```
 
-
-
-
 ## 3 DAG's propuestas:
 
-### Dag 1 [Nombre de persona entrevistada]
-Creamos la dag
-Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
+### Dag 1 \[Nombre de persona entrevistada\]
+
+Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
+
 ```{r}
 dag1 = model2network('')
 ```
@@ -228,10 +202,10 @@ dag1 = model2network('')
 graphviz.plot(dag, shape = "ellipse")
 ```
 
+### Dag 2 \[Nombre de persona entrevistada\]
 
-### Dag 2 [Nombre de persona entrevistada]
-Creamos la dag
-Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
+Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
+
 ```{r}
 dag2 = model2network('')
 ```
@@ -240,10 +214,10 @@ dag2 = model2network('')
 graphviz.plot(dag, shape = "ellipse")
 ```
 
+### Dag 3 \[Nombre de persona entrevistada\]
 
-### Dag 3 [Nombre de persona entrevistada]
-Creamos la dag
-Ejemplo: '[T][R][H|T:R][pH|T:R][N|H][K|H][P|pH][Y|N:K:P]'
+Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
+
 ```{r}
 dag3 = model2network('')
 ```
@@ -252,31 +226,37 @@ dag3 = model2network('')
 graphviz.plot(dag, shape = "ellipse")
 ```
 
-
 ## Limpiamos nuevamente la base de datos
+
 Quitamos variables que no vamos a usar y valores nulos
+
 ```{r}
 #df_limpio <- df_limpio %>% select(-)
 #df_limpio
 ```
 
 ## GBN para las DAG's:
+
 Dag 1
+
 ```{r}
 gbn_1 = bn.fit(dag1, data = df_limpio)
 ```
 
 Dag 2
+
 ```{r}
 gbn_2 = bn.fit(dag2, data = df_limpio)
 ```
 
 Dag 3
+
 ```{r}
 gbn_3 = bn.fit(dag3, data = df_limpio)
 ```
 
 ## BIC y AIC de las GBN's:
+
 ```{r}
 bic_scores <- c(
   dag1 = score(dag1, data = df_limpio, type = "bic-g"),
@@ -306,5 +286,3 @@ print(scores_df)
 ## 3 Queries a resolver:
 
 ##✏️ Investiguen si incluir modelos no paramétricos les ayuda a mejorar el BIC y el AIC de su mejor modelo.:
-
-
