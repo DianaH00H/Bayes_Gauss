@@ -492,4 +492,45 @@ cpquery(gbn_2_best,
 
 ```
 
+¿Cual es la probabilidad que una mujer adulta de la tercera edad presente glucosa elevada si incrementa su exposición a contaminantes y como se compara con alguien que tiene baja exposición?
+
+```{r}
+cuartiles <- sapply(df_limpio_imp[, c("SO2","CO","NOX", "COV", "PM10", "PM25", "NH3")], 
+                    quantile, probs = c(0.25, 0.75), na.rm = TRUE)
+
+p_baja <- cpquery(gbn_2_best,
+                  event = (Glucose > 110),
+                  evidence = (Sex == "2" &
+                              Age > 60 &
+                              SO2 <= cuartiles["25%", "SO2"] &
+                              CO <= cuartiles["25%", "CO"] &
+                              NOX <= cuartiles["25%", "NOX"] &
+                              COV <= cuartiles["25%", "COV"] &
+                              PM10 <= cuartiles["25%", "PM10"] &
+                              PM25 <= cuartiles["25%", "PM25"] &
+                              NH3 <= cuartiles["25%", "NH3"]),
+                  n = 10^6)
+
+p_alta <- cpquery(gbn_2_best,
+                  event = (Glucose > 110),
+                  evidence = (Sex == "2" &
+                              Age > 60 &
+                              SO2 >= cuartiles["75%", "SO2"] &
+                              CO >= cuartiles["75%", "CO"] &
+                              NOX >= cuartiles["75%", "NOX"] &
+                              COV >= cuartiles["75%", "COV"] &
+                              PM10 >= cuartiles["75%", "PM10"] &
+                              PM25 >= cuartiles["75%", "PM25"] &
+                              NH3 >= cuartiles["75%", "NH3"]),
+                  n = 10^6)
+
+```
+
+```{r}
+print(p_baja)
+print(p_alta)
+```
+
+Si bien existe alrededor de un 2% de diferencia entre ambas probabilidades, lo cual sugiere que la presencia de contaminantes si afecta la probabilidad de tener glucosa alta, esta diferencia es considerablemente baja por lo que la contaminacion no es un factor muy importante a considerar para ver si afecta el nivel de glucosa de mujeres adultas de la tercera edad.
+
 ##✏️ Investiguen si incluir modelos no paramétricos les ayuda a mejorar el BIC y el AIC de su mejor modelo.:
