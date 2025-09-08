@@ -10,6 +10,11 @@ editor: visual
 ---
 
 ## Establecemos semilla y llamamos las librerias necesarias:
+```{r}
+### Instalacion de libreria para imputacion MICE
+#install.packages("mice")
+```
+
 
 ```{r}
 library(dplyr)
@@ -17,7 +22,7 @@ library(readr)
 library(stringr)
 library(stringi)
 library(bnlearn)
-
+library(mice)
 set.seed(1234)
 ```
 
@@ -179,6 +184,12 @@ merged_df <- merged_df %>%
     as.numeric
   ))
 
+merged_df <- merged_df %>%
+  mutate(across(
+    c(Age),
+    as.numeric
+  ))
+
 # Eliminar cols duplicados
 
 merged_df <- merged_df %>% select(-FOLIO_I.x, -FOLIO_I.y, -Entidad_federativa, -Entidad_federativa.y)
@@ -186,6 +197,10 @@ merged_df <- merged_df %>% select(-FOLIO_I.x, -FOLIO_I.y, -Entidad_federativa, -
 # Resultado
 muestras
 merged_df
+```
+
+```{r}
+glimpse(merged_df)
 ```
 
 ## 3 DAG's propuestas:
@@ -197,11 +212,6 @@ Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\
 ```{r}
 
 #creacion de la primera DAG sin variables cualitativas
-
-colnames(merged_df) = c("Age", "Hemoglobin", "HDL", "LDL", "Colest_tot", "Glucose",
-                   "Insuline", "PCR", "Triglicerides", "HbA1C", "Ferritine",
-                   "Transferrine","Vit_D", "SO2", "CO", "NOX", "COV", "PM10",
-                   "PM25", "NH3")
 # Definir el DAG
 dag1 = model2network("[Age][SO2][CO][NOX][COV][PM10][PM25][NH3][Hemoglobin|SO2:CO:NOX:COV:PM10:PM25:NH3][HDL|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][LDL|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Colest_tot|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Glucose|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Insuline|SO2:CO:NOX:COV:PM10:PM25:NH3][PCR|SO2:CO:NOX:COV:PM10:PM25:NH3][Triglicerides|SO2:CO:NOX:COV:PM10:PM25:NH3][HbA1C|SO2:CO:NOX:COV:PM10:PM25:NH3][Ferritine|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Transferrine|SO2:CO:NOX:COV:PM10:PM25:NH3][Vit_D|SO2:CO:NOX:COV:PM10:PM25:NH3]")
 ```
@@ -216,25 +226,45 @@ Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\
 
 ```{r}
 # DAG 2 (Ángel)
+### Con sex
+# dag2_string <- paste0(
+#   "[Sex][Age][Meses][PM25][PM10][NOX][CO][SO2][COV][NH3]",
+#   "[PCR|PM25:NOX:NH3:Meses:Age]",
+#   "[Hemoglobin|Sex:Age:NOX]",
+#   "[Ferritine|Sex:Age:PCR]",
+#   "[Transferrine|Age:Ferritine]",
+#   "[Glucose|Age:PM25:NOX:CO:Meses]",
+#   "[Insuline|Age:PM25:NOX:CO:Glucose]",
+#   "[HbA1C|Age:Glucose]",
+#   "[HDL|Sex:Age:PM25:Meses]",
+#   "[LDL|Age:PM25:NOX:Meses]",
+#   "[Triglicerides|Age:PM25:NOX:Meses]",
+#   "[Colest_tot|LDL:HDL:Triglicerides:Age]",
+#   "[Creatinine|Age:Sex:Meses]",
+#   "[Vit_D|Meses:Age:Sex:PM25]",
+#   "[Vit_B12|Age:Meses]",
+#   "[Folate|Age:Meses]"
+# )
+
+###Sin sex
 dag2_string <- paste0(
-  "[Sex][Age][Meses][PM_2_5][PM_010][NOx][CO][SO_2][COV][NH_3]",
-  "[PCR|PM_2_5:NOx:NH_3:Meses:Age]",
-  "[Hemoglobin|Sex:Age:NOx]",
-  "[Ferritine|Sex:Age:PCR]",
+  "[Age][Meses][PM25][PM10][NOX][CO][SO2][COV][NH3]",
+  "[PCR|PM25:NOX:NH3:Meses:Age]",
+  "[Hemoglobin|Age:NOX]",
+  "[Ferritine|Age:PCR]",
   "[Transferrine|Age:Ferritine]",
-  "[Glucose|Age:PM_2_5:NOx:CO:Meses]",
-  "[Insuline|Age:PM_2_5:NOx:CO:Glucose]",
+  "[Glucose|Age:PM25:NOX:CO:Meses]",
+  "[Insuline|Age:PM25:NOX:CO:Glucose]",
   "[HbA1C|Age:Glucose]",
-  "[HDL|Sex:Age:PM_2_5:Meses]",
-  "[LDL|Age:PM_2_5:NOx:Meses]",
-  "[Triglicerides|Age:PM_2_5:NOx:Meses]",
+  "[HDL|Age:PM25:Meses]",
+  "[LDL|Age:PM25:NOX:Meses]",
+  "[Triglicerides|Age:PM25:NOX:Meses]",
   "[Colest_tot|LDL:HDL:Triglicerides:Age]",
-  "[Creatinine|Age:Sex:Meses]",
-  "[Vit_D|Meses:Age:Sex:PM_2_5]",
+  "[Creatinine|Age:Meses]",
+  "[Vit_D|Meses:Age:PM25]",
   "[Vit_B12|Age:Meses]",
   "[Folate|Age:Meses]"
 )
-
 
 ```
 
@@ -288,267 +318,43 @@ dag3b_string <- paste0(
   "[Folate|Age]"
 )
 
-dag3b <- bnlearn::model2network(dag3b_string)
-graphviz.plot(dag3b, shape = "ellipse")
+dag3 <- model2network(dag3b_string)
+graphviz.plot(dag3, shape = "ellipse")
 ```
 
-## Limpiamos nuevamente la base de datos
+## Limpiamos nuevamente la base de datos para que cada DAG tenga la suya 
 
-Quitamos variables que no vamos a usar y valores nulos
+Quitamos variables que no vamos a usar y hacemos la imputacion
+
 
 ```{r}
-#df_limpio <- df_limpio %>% select(-)
-#df_limpio
+###Hacemos un df limpio base quitando variables que ninguno usa
+df_limpio <- merged_df %>% select(-FOLIO_INT, -Entidad_federativa.x, -Municipio)
+
+###Hacemos imputacion con MICE
+#Metodos
+metodos <- make.method(df_limpio)
+metodos["Sex"] <- "logreg"   # binaria
+metodos[names(metodos) != "Sex"] <- "pmm"  # continuas
+# Imputación múltiple
+imp <- mice(df_limpio, m = 5, method = metodos, maxit = 50)
+# Obtener un dataset completo (puedes analizar todos después)
+df_limpio_imp <- mice::complete(imp, 1)
+
+# Imputamos con la media las variables con muy pocos datos
+df_limpio_imp$Creatinine[is.na(df_limpio_imp$Creatinine)] <- mean(df_limpio_imp$Creatinine, na.rm = TRUE)
+df_limpio_imp$HbA1C[is.na(df_limpio_imp$HbA1C)]           <- mean(df_limpio_imp$HbA1C, na.rm = TRUE)
+df_limpio_imp$Folate[is.na(df_limpio_imp$Folate)]         <- mean(df_limpio_imp$Folate, na.rm = TRUE)
+
+#Hacemos dfs para cada dag quitando variables que no usa cada dag y sex que es categorica
+df_limpio1 <- df_limpio_imp %>% select(  -Sex, -Creatinine, -Folate, -Vit_B12, -Meses)
+df_limpio2 <- df_limpio_imp %>% select(  -Sex)
+df_limpio3 <- df_limpio_imp %>% select(  -Sex, -Meses)
+
+summary(df_limpio_imp)
 ```
-
-## GBN para las DAG's:
-
-Dag 1
-
 ```{r}
-gbn_1 = bn.fit(dag1, data = df_limpio)
-```
-
-=======
-
-Estado -\> desc_ent1 Municipio -\> desc_mun1 Meses -\> meses     
-
-### ensanut2022_muestras
-
-Sex -\> h0302 Age -\> h0303 Hemoglobin -\> hb02 HDL -\> valor_COL_HDL LDL -\> valor_COL_LDL Colest tot -\> valor_COLEST Creatinine -\> valor_CREAT Glucose -\> valor_EAG Insuline -\> valor_INSULINA PCR -\> valor_PCR Triglicerides -\> valor_TRIG HbA1C -\> valor_HB1AC Ferritine -\> valor_FERRITINA Folate -\> valor\_ valor_FOL Transferrine -\> valor_STFR_FEB23 Vit B12 -\> valor_VIT_B12 Vit D -\> valor_VIT_D
-
-## Creamos df de los csv unidos:
-
-```{r}
-# Función para limpiar nombres
-
-limpiar_nombre <- function(x) {
-  x %>%
-    str_remove("^[0-9]+\\s*") %>%  
-    str_squish() %>%               
-    str_to_lower() %>%             
-    stri_trans_general("Latin-ASCII")  
-}
-
-
-# Cargar bases de datos
-
-aire <- read_delim("data/calidad_aire_2025.csv")
-socdem <- read_delim("data/ensanut2022_socdem.csv")
-muestras  <- read_delim("data/ensanut2022_muestras.csv")
-
-
-# Normalizar nombres
-
-socdem <- socdem %>%
-  mutate(
-    Entidad_federativa = limpiar_nombre(desc_ent1),
-    Municipio = limpiar_nombre(desc_mun1)
-  )
-
-muestras <- muestras %>%
-  mutate(
-    Entidad_federativa = limpiar_nombre(desc_ent),
-    Municipio = limpiar_nombre(desc_mun)
-  )
-
-aire <- aire %>%
-  mutate(
-    Entidad_federativa = limpiar_nombre(Entidad_federativa),
-    Municipio = limpiar_nombre(Municipio)
-  )
-
-
-# Renombrar columnas de emisiones
-
-aire_rename <- c(
-  "SO2" = "SO_2",
-  "NOX" = "NOx",
-  "PM10" = "PM_010",
-  "PM25" = "PM_2_5",
-  "NH3" = "NH_3"
-)
-
-aire <- aire %>% rename(!!!aire_rename)
-
-
-# Resumir aire por municipio y fuente fija
-
-aire_municipio <- aire %>%
-  filter(Tipo_de_Fuente == "Fuentes fijas") %>%
-  group_by(Entidad_federativa, Municipio) %>%
-  summarise(
-    SO2   = sum(SO2, na.rm = TRUE),
-    CO    = sum(CO, na.rm = TRUE),
-    NOX   = sum(NOX, na.rm = TRUE),
-    COV   = sum(COV, na.rm = TRUE),
-    PM10  = sum(PM10, na.rm = TRUE),
-    PM25  = sum(PM25, na.rm = TRUE),
-    NH3   = sum(NH3, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-
-# Selección y renombrado de columnas
-
-socdem <- socdem %>%
-  select(FOLIO_I, FOLIO_INT, Entidad_federativa, Municipio, meses) %>%
-  rename(Meses = meses)
-
-muestras <- muestras %>%
-  select(FOLIO_I, FOLIO_INT, Entidad_federativa, Municipio,
-         h0302, h0303, hb02, valor_COL_HDL, valor_COL_LDL, valor_COLEST,
-         valor_CREAT, valor_EAG, valor_INSULINA, valor_PCR, valor_TRIG,
-         valor_HB1AC, valor_FERRITINA, valor_FOL, valor_STFR_FEB23,
-         valor_VIT_B12, valor_VIT_D) %>%
-  rename(
-    Sex = h0302,
-    Age = h0303,
-    Hemoglobin = hb02,
-    HDL = valor_COL_HDL,
-    LDL = valor_COL_LDL,
-    Colest_tot = valor_COLEST,
-    Creatinine = valor_CREAT,
-    Glucose = valor_EAG,
-    Insuline = valor_INSULINA,
-    PCR = valor_PCR,
-    Triglicerides = valor_TRIG,
-    HbA1C = valor_HB1AC,
-    Ferritine = valor_FERRITINA,
-    Folate = valor_FOL,
-    Transferrine = valor_STFR_FEB23,
-    Vit_B12 = valor_VIT_B12,
-    Vit_D = valor_VIT_D
-  )
-
-
-# Variables 
-
-
-vars <- c(
-    "FOLIO_INT", "Entidad_federativa", "Municipio", 
-  "Sex", "Age", "Hemoglobin", "HDL", "LDL", "Colest_tot", 
-  "Creatinine", "Glucose", "Insuline", "PCR", "Triglicerides", 
-  "HbA1C", "Ferritine", "Folate", "Transferrine", "Vit_B12", "Vit_D",
-  "Meses"
-)
-
-vars_muestra <- c("Hemoglobin", "HDL", "LDL", "Colest_tot", 
-  "Creatinine", "Glucose", "Insuline", "PCR", "Triglicerides", 
-  "HbA1C", "Ferritine", "Folate", "Transferrine", "Vit_B12", "Vit_D"
-)
-
-  
-
-# Limpiar valores faltantes
-
-muestras  <- muestras |> filter(if_all(all_of(vars_muestra), ~ !is.na(.x)))
-
-# Unir bases
-
-merged_df <- socdem %>%
-  left_join(muestras, by = c("FOLIO_INT", "Municipio")) %>%
-  left_join(aire_municipio, by = ("Municipio"))
-
-# Eliminamos valores vacios de merged_df (Al juntarlos se generan nuevos valores vacios) 
-#y luego convertimos a numericos los valores de muestras
-
-merged_df  <- merged_df |> filter(if_all(all_of(vars), ~ !is.na(.x)))
-
-merged_df <- merged_df %>%
-  mutate(across(
-    c(vars_muestra),
-    as.numeric
-  ))
-
-# Eliminar cols duplicados
-
-merged_df <- merged_df %>% select(-FOLIO_I.x, -FOLIO_I.y, -Entidad_federativa, -Entidad_federativa.y)
-
-# Resultado
-muestras
-merged_df
-```
-
-## 3 DAG's propuestas:
-
-### Dag 1 \[Persona entrevistada: Samantha Nevarez Soto estudiante de medicina\]
-
-Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
-
-```{r}
-
-#creacion de la primera DAG sin variables cualitativas
-
-colnames(merged_df) = c("Age", "Hemoglobin", "HDL", "LDL", "Colest_tot", "Glucose",
-                   "Insuline", "PCR", "Triglicerides", "HbA1C", "Ferritine",
-                   "Transferrine","Vit_D", "SO2", "CO", "NOX", "COV", "PM10",
-                   "PM25", "NH3")
-# Definir el DAG
-dag1 = model2network("[Age][SO2][CO][NOX][COV][PM10][PM25][NH3][Hemoglobin|SO2:CO:NOX:COV:PM10:PM25:NH3][HDL|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][LDL|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Colest_tot|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Glucose|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Insuline|SO2:CO:NOX:COV:PM10:PM25:NH3][PCR|SO2:CO:NOX:COV:PM10:PM25:NH3][Triglicerides|SO2:CO:NOX:COV:PM10:PM25:NH3][HbA1C|SO2:CO:NOX:COV:PM10:PM25:NH3][Ferritine|SO2:CO:NOX:COV:PM10:PM25:NH3:Age][Transferrine|SO2:CO:NOX:COV:PM10:PM25:NH3][Vit_D|SO2:CO:NOX:COV:PM10:PM25:NH3]")
-```
-
-```{r}
-graphviz.plot(dag1, shape = "ellipse")
-```
-
-### Dag 2 \[Persona entrevistada: Angel David Hernández Almeida Ingeniero Biomédico del Real San José\]
-
-Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
-
-```{r}
-# DAG 2 (Ángel)
-dag2_string <- paste0(
-  "[Sex][Age][Meses][PM_2_5][PM_010][NOx][CO][SO_2][COV][NH_3]",
-  "[PCR|PM_2_5:NOx:NH_3:Meses:Age]",
-  "[Hemoglobin|Sex:Age:NOx]",
-  "[Ferritine|Sex:Age:PCR]",
-  "[Transferrine|Age:Ferritine]",
-  "[Glucose|Age:PM_2_5:NOx:CO:Meses]",
-  "[Insuline|Age:PM_2_5:NOx:CO:Glucose]",
-  "[HbA1C|Age:Glucose]",
-  "[HDL|Sex:Age:PM_2_5:Meses]",
-  "[LDL|Age:PM_2_5:NOx:Meses]",
-  "[Triglicerides|Age:PM_2_5:NOx:Meses]",
-  "[Colest_tot|LDL:HDL:Triglicerides:Age]",
-  "[Creatinine|Age:Sex:Meses]",
-  "[Vit_D|Meses:Age:Sex:PM_2_5]",
-  "[Vit_B12|Age:Meses]",
-  "[Folate|Age:Meses]"
-)
-
-
-```
-
-```{r}
-dag2 <- model2network(dag2_string)
-
-```
-
-```{r}
-graphviz.plot(dag2, shape = "ellipse")
-
-```
-
-### Dag 3 \[Nombre de persona entrevistada\]
-
-Creamos la dag Ejemplo: '\[T\]\[R\]\[H\|T:R\]\[pH\|T:R\]\[N\|H\]\[K\|H\]\[P\|pH\]\[Y\|N:K:P\]'
-
-```{r}
-dag3 = model2network('')
-```
-
-```{r}
-graphviz.plot(dag, shape = "ellipse")
-```
-
-## Limpiamos nuevamente la base de datos
-
-Quitamos variables que no vamos a usar y valores nulos
-
-```{r}
-#df_limpio <- df_limpio %>% select(-)
-#df_limpio
+df_limpio_imp
 ```
 
 ## GBN para las DAG's:
@@ -556,35 +362,35 @@ Quitamos variables que no vamos a usar y valores nulos
 Dag 1
 
 ```{r}
-gbn_1 = bn.fit(dag1, data = df_limpio)
+gbn_1 = bn.fit(dag1, data = df_limpio1)
 ```
 
 
 Dag 2
 
 ```{r}
-gbn_2 = bn.fit(dag2, data = df_limpio)
+gbn_2 = bn.fit(dag2, data = df_limpio2)
 ```
 
 Dag 3
 
 ```{r}
-gbn_3 = bn.fit(dag3, data = df_limpio)
+gbn_3 = bn.fit(dag3, data = df_limpio3)
 ```
 
 ## BIC y AIC de las GBN's:
 
 ```{r}
 bic_scores <- c(
-  dag1 = score(dag1, data = df_limpio, type = "bic-g"),
-  dag2 = score(dag2, data = df_limpio, type = "bic-g"),
-  dag3 = score(dag3, data = df_limpio, type = "bic-g")
+  dag1 = score(dag1, data = df_limpio1, type = "bic-g"),
+  dag2 = score(dag2, data = df_limpio2, type = "bic-g"),
+  dag3 = score(dag3, data = df_limpio3, type = "bic-g")
 )
 
 aic_scores <- c(
-  dag1 = score(dag1, data = df_limpio, type = "aic-g"),
-  dag2 = score(dag2, data = df_limpio, type = "aic-g"),
-  dag3 = score(dag3, data = df_limpio, type = "aic-g")
+  dag1 = score(dag1, data = df_limpio1, type = "aic-g"),
+  dag2 = score(dag2, data = df_limpio2, type = "aic-g"),
+  dag3 = score(dag3, data = df_limpio3, type = "aic-g")
 )
 
 scores_df <- data.frame(
@@ -597,8 +403,87 @@ print(scores_df)
 ```
 
 ## Inclusión de variables categoricas:
+Para poder agregar una variable discreta tenemos 3 opciones.
+1. Codificar la variable, pero esto hara que pierda su valor probabilistico.
+2. Discretizar todas las variables, pero si hacemos eso no podremos hacer nuestro queries.
+3. Hacer una red bayesiana hibrida teniendo la variable categorica como factor
+
 
 ## Mejor estructura:
+La mejor opcion es la 3, asi que cambiaremos sex a factor
+La mejor dag fue la 2, asi que la vamos a rehacer incluyendo el sexo
+Luego vamos a crear la nueva red bayesiana y a comparar su efectividad
+
+
+```{r}
+library(bnstruct)
+library(bnlearn)
+
+# Sex como factor
+df_limpio_imp$Sex <- as.factor(df_limpio_imp$Sex)
+
+# Nueva dag
+dag2_string <- paste0(
+  "[Sex][Age][Meses][PM25][PM10][NOX][CO][SO2][COV][NH3]",
+  "[PCR|PM25:NOX:NH3:Meses:Age]",
+  "[Hemoglobin|Sex:Age:NOX]",
+  "[Ferritine|Sex:Age:PCR]",
+  "[Transferrine|Age:Ferritine]",
+  "[Glucose|Age:PM25:NOX:CO:Meses]",
+  "[Insuline|Age:PM25:NOX:CO:Glucose]",
+  "[HbA1C|Age:Glucose]",
+  "[HDL|Sex:Age:PM25:Meses]",
+  "[LDL|Age:PM25:NOX:Meses]",
+  "[Triglicerides|Age:PM25:NOX:Meses]",
+  "[Colest_tot|LDL:HDL:Triglicerides:Age]",
+  "[Creatinine|Age:Sex:Meses]",
+  "[Vit_D|Meses:Age:Sex:PM25]",
+  "[Vit_B12|Age:Meses]",
+  "[Folate|Age:Meses]"
+)
+dag2_best <- model2network(dag2_string)
+# Nueva red bayesiana
+gbn_2_best <- bn.fit(dag2_best, df_limpio_imp)
+
+```
+
+Comparamos los scores de todas las redes
+```{r}
+bic_scores <- c(
+  dag1 = score(dag1, data = df_limpio1, type = "bic-g"),
+  dag2 = score(dag2, data = df_limpio2, type = "bic-g"),
+  dag3 = score(dag3, data = df_limpio3, type = "bic-g"),
+  dag_2_best <- score(dag2_best, data = df_limpio_imp, type = "bic-cg")
+
+)
+
+aic_scores <- c(
+  dag1 = score(dag1, data = df_limpio1, type = "aic-g"),
+  dag2 = score(dag2, data = df_limpio2, type = "aic-g"),
+  dag3 = score(dag3, data = df_limpio3, type = "aic-g"),
+  dag_2_best <- score(dag2_best, data = df_limpio_imp, type = "aic-cg")
+
+)
+
+scores_df <- data.frame(
+  DAG = c("dag1", "dag2", "dag3", "dag_2_best"),
+  BIC = bic_scores,
+  AIC = aic_scores
+)
+
+print(scores_df)
+```
+
+Se puede ver que la score de la red bayesiana hibrida es la mejor comparada con las demas dags, por lo que usaremos esa.
+
+
+Query de ejemplo para ver que funcione
+```{r}
+cpquery(gbn_2_best,
+        event = (Sex == "1"),
+        evidence = (Age < 50 & HDL < 60),
+        n = 10^6)  # número de simulacion
+```
 
 ## 3 Queries a resolver:
 
