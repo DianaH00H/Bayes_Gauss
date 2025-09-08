@@ -12,8 +12,22 @@ editor: visual
 ## Establecemos semilla y llamamos las librerias necesarias:
 
 ```{r}
+install.packages(c("glmnet", "matrixStats", "survival", "lme4", "VIM"))
+
+```
+
+```{r}
+library(glmnet)
+library(matrixStats)
+library(survival)
+library(lme4)
+library(VIM)
+```
+
+```{r}
 ### Instalacion de libreria para imputacion MICE
-#install.packages("mice")
+install.packages("mice")
+library(mice)
 ```
 
 ```{r}
@@ -393,7 +407,7 @@ aic_scores <- c(
 )
 
 scores_df <- data.frame(
-  DAG = c("dag1", "dag2", "dag3"),
+  DAG = c("dag3"),
   BIC = bic_scores,
   AIC = aic_scores
 )
@@ -410,6 +424,7 @@ Para poder agregar una variable discreta tenemos 3 opciones. 1. Codificar la var
 La mejor opcion es la 3, asi que cambiaremos sex a factor La mejor dag fue la 2, asi que la vamos a rehacer incluyendo el sexo Luego vamos a crear la nueva red bayesiana y a comparar su efectividad
 
 ```{r}
+install.packages("bnstruct")
 library(bnstruct)
 library(bnlearn)
 
@@ -532,5 +547,52 @@ print(p_alta)
 ```
 
 Si bien existe alrededor de un 2% de diferencia entre ambas probabilidades, lo cual sugiere que la presencia de contaminantes si afecta la probabilidad de tener glucosa alta, esta diferencia es considerablemente baja por lo que la contaminacion no es un factor muy importante a considerar para ver si afecta el nivel de glucosa de mujeres adultas de la tercera edad.
+
+Query 3: La edad y la exposición a contaminantes del aire influyen en biomarcadores clave como glucosa, lípidos, inflamación, vitaminas y hemoglobina, los cuales interactúan entre sí para reflejar el estado metabólico y de salud de la persona.
+
+```{r}
+# --- Query DAG 3: Edad + contaminación -> biomarcadores ---
+set.seed(1234)
+
+# Cuartiles de exposición para contaminantes
+cuartiles <- sapply(df_limpio3[, c("SO2","CO","NOX","COV","PM10","PM25","NH3")],
+                    quantile, probs = c(0.25, 0.75), na.rm = TRUE)
+
+# Exposición BAJA (Q1) en mayores de 40
+p_baja <- cpquery(
+  gbn_3,
+  event = (Glucose > 110 & LDL > 130 & HDL < 40 & HbA1C > 6),
+  evidence = (Age > 40 &
+              SO2 <= cuartiles["25%","SO2"] &
+              CO  <= cuartiles["25%","CO"] &
+              NOX <= cuartiles["25%","NOX"] &
+              COV <= cuartiles["25%","COV"] &
+              PM10<= cuartiles["25%","PM10"] &
+              PM25<= cuartiles["25%","PM25"] &
+              NH3 <= cuartiles["25%","NH3"]),
+  n = 10^6
+)
+
+# Exposición ALTA (Q3) en mayores de 40
+p_alta <- cpquery(
+  gbn_3,
+  event = (Glucose > 110 & LDL > 130 & HDL < 40 & HbA1C > 6),
+  evidence = (Age > 40 &
+              SO2 >= cuartiles["75%","SO2"] &
+              CO  >= cuartiles["75%","CO"] &
+              NOX >= cuartiles["75%","NOX"] &
+              COV >= cuartiles["75%","COV"] &
+              PM10>= cuartiles["75%","PM10"] &
+              PM25>= cuartiles["75%","PM25"] &
+              NH3 >= cuartiles["75%","NH3"]),
+  n = 10^6
+)
+
+print(p_baja)
+print(p_alta)
+print(p_alta - p_baja)
+```
+
+La comparación muestra una diferencia cercana al **1%** en la probabilidad de presentar alteraciones metabólicas entre personas con baja y alta exposición a contaminantes. Esto indica que la contaminación atmosférica tiene un efecto perceptible, pero **de magnitud limitada**, por lo que no sería un factor decisivo por sí solo para explicar los cambios en glucosa, lípidos e inflamación en adultos mayores de 40 años.
 
 ##✏️ Investiguen si incluir modelos no paramétricos les ayuda a mejorar el BIC y el AIC de su mejor modelo.:
