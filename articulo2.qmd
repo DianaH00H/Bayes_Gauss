@@ -10,11 +10,11 @@ editor: visual
 ---
 
 ## Establecemos semilla y llamamos las librerias necesarias:
+
 ```{r}
 ### Instalacion de libreria para imputacion MICE
 #install.packages("mice")
 ```
-
 
 ```{r}
 library(dplyr)
@@ -278,7 +278,7 @@ graphviz.plot(dag2, shape = "ellipse")
 
 ```
 
-### Dag 3. 
+### Dag 3.
 
 #### (Nombre de persona entrevistada: Estefanía Parra Esparza, estudiante de medicina. U de G)
 
@@ -322,10 +322,9 @@ dag3 <- model2network(dag3b_string)
 graphviz.plot(dag3, shape = "ellipse")
 ```
 
-## Limpiamos nuevamente la base de datos para que cada DAG tenga la suya 
+## Limpiamos nuevamente la base de datos para que cada DAG tenga la suya
 
 Quitamos variables que no vamos a usar y hacemos la imputacion
-
 
 ```{r}
 ###Hacemos un df limpio base quitando variables que ninguno usa
@@ -353,6 +352,7 @@ df_limpio3 <- df_limpio_imp %>% select(  -Sex, -Meses)
 
 summary(df_limpio_imp)
 ```
+
 ```{r}
 df_limpio_imp
 ```
@@ -364,7 +364,6 @@ Dag 1
 ```{r}
 gbn_1 = bn.fit(dag1, data = df_limpio1)
 ```
-
 
 Dag 2
 
@@ -403,17 +402,12 @@ print(scores_df)
 ```
 
 ## Inclusión de variables categoricas:
-Para poder agregar una variable discreta tenemos 3 opciones.
-1. Codificar la variable, pero esto hara que pierda su valor probabilistico.
-2. Discretizar todas las variables, pero si hacemos eso no podremos hacer nuestro queries.
-3. Hacer una red bayesiana hibrida teniendo la variable categorica como factor
 
+Para poder agregar una variable discreta tenemos 3 opciones. 1. Codificar la variable, pero esto hara que pierda su valor probabilistico. 2. Discretizar todas las variables, pero si hacemos eso no podremos hacer nuestro queries. 3. Hacer una red bayesiana hibrida teniendo la variable categorica como factor
 
 ## Mejor estructura:
-La mejor opcion es la 3, asi que cambiaremos sex a factor
-La mejor dag fue la 2, asi que la vamos a rehacer incluyendo el sexo
-Luego vamos a crear la nueva red bayesiana y a comparar su efectividad
 
+La mejor opcion es la 3, asi que cambiaremos sex a factor La mejor dag fue la 2, asi que la vamos a rehacer incluyendo el sexo Luego vamos a crear la nueva red bayesiana y a comparar su efectividad
 
 ```{r}
 library(bnstruct)
@@ -448,6 +442,7 @@ gbn_2_best <- bn.fit(dag2_best, df_limpio_imp)
 ```
 
 Comparamos los scores de todas las redes
+
 ```{r}
 bic_scores <- c(
   dag1 = score(dag1, data = df_limpio1, type = "bic-g"),
@@ -476,8 +471,8 @@ print(scores_df)
 
 Se puede ver que la score de la red bayesiana hibrida es la mejor comparada con las demas dags, por lo que usaremos esa.
 
-
 Query de ejemplo para ver que funcione
+
 ```{r}
 cpquery(gbn_2_best,
         event = (Sex == "1"),
@@ -486,5 +481,15 @@ cpquery(gbn_2_best,
 ```
 
 ## 3 Queries a resolver:
+
+¿Cuál es la probabilidad de que una persona mayor de 40 años tenga glucosa \> 110 mg/dL, dado que su colesterol LDL es mayor a 130 mg/dL?
+
+```{r}
+cpquery(gbn_2_best,
+  event    = (Glucose > 110),
+  evidence = (Age > 40 & LDL > 130),
+  n        = 10^6)
+
+```
 
 ##✏️ Investiguen si incluir modelos no paramétricos les ayuda a mejorar el BIC y el AIC de su mejor modelo.:
