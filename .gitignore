@@ -7,3 +7,8 @@ LICENSE.DS_Store
 .Rproj.user/
 *.Rproj
 notebooks/exploracion_inicial.qmd
+.DS_Store
+.Rhistory
+.Rproj.user/
+*.Rproj
+~
